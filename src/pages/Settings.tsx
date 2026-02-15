@@ -25,6 +25,8 @@ import {
   Smartphone,
   Trash2,
   KeyRound,
+  Mail,
+  Check,
 } from "lucide-react";
 import {
   Dialog,
@@ -49,6 +51,7 @@ interface Profile {
   id: string;
   username: string;
   avatar_url: string | null;
+  email: string | null;
 }
 
 const Settings = () => {
@@ -67,6 +70,8 @@ const Settings = () => {
   const [pinStep, setPinStep] = useState<"enter" | "confirm">("enter");
   const [pinError, setPinError] = useState<string | null>(null);
   const [revokingDeviceId, setRevokingDeviceId] = useState<string | null>(null);
+  const [emailInput, setEmailInput] = useState("");
+  const [savingEmail, setSavingEmail] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -120,12 +125,39 @@ const Settings = () => {
   const fetchProfile = async (userId: string) => {
     const { data } = await supabase
       .from("profiles")
-      .select("id, username, avatar_url")
+      .select("id, username, avatar_url, email")
       .eq("user_id", userId)
       .maybeSingle();
 
     if (data) {
       setProfile(data);
+      setEmailInput(data.email || "");
+    }
+  };
+
+  const handleSaveEmail = async () => {
+    if (!emailInput.trim()) return;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailInput)) {
+      toast({ variant: "destructive", title: "Lỗi", description: "Email không hợp lệ" });
+      return;
+    }
+    setSavingEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('update-email', {
+        body: { email: emailInput.trim().toLowerCase() }
+      });
+      if (error) throw error;
+      if (data?.error) {
+        toast({ variant: "destructive", title: "Lỗi", description: data.error });
+        return;
+      }
+      setProfile(prev => prev ? { ...prev, email: emailInput.trim().toLowerCase() } : null);
+      toast({ title: "Đã lưu", description: "Email đã được cập nhật" });
+    } catch {
+      toast({ variant: "destructive", title: "Lỗi", description: "Không thể cập nhật email" });
+    } finally {
+      setSavingEmail(false);
     }
   };
 
@@ -392,6 +424,44 @@ const Settings = () => {
               Bấm vào ảnh để thay đổi
             </p>
           </div>
+        </div>
+
+        {/* Email Section */}
+        <div className="bg-card border border-border rounded-xl p-4 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+              <Mail className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-medium text-foreground">Email khôi phục</h3>
+              <p className="text-sm text-muted-foreground">
+                Dùng để lấy lại mật khẩu khi quên
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Input
+              type="email"
+              placeholder="example@gmail.com"
+              value={emailInput}
+              onChange={e => setEmailInput(e.target.value)}
+              className="h-10 bg-background border-border"
+              disabled={savingEmail}
+            />
+            <Button
+              size="sm"
+              className="h-10 px-4"
+              onClick={handleSaveEmail}
+              disabled={savingEmail || emailInput === (profile?.email || "")}
+            >
+              {savingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+            </Button>
+          </div>
+          {profile?.email && (
+            <p className="text-xs text-muted-foreground">
+              Email hiện tại: <span className="text-foreground">{profile.email}</span>
+            </p>
+          )}
         </div>
 
         {/* PIN Code */}
