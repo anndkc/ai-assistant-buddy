@@ -14,7 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      user_devices: {
+        Row: {
+          created_at: string
+          device_fingerprint: string
+          device_name: string
+          id: string
+          is_active: boolean
+          last_active: string
+          public_key: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_fingerprint: string
+          device_name?: string
+          id?: string
+          is_active?: boolean
+          last_active?: string
+          public_key: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_fingerprint?: string
+          device_name?: string
+          id?: string
+          is_active?: boolean
+          last_active?: string
+          public_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
